@@ -16,5 +16,5 @@ server.listen()
 # Command handler configurations
 Commander(
     server=server,
-    commandsPath=os.path.join(os.getcwd(), 'commands')
+    commandsPath=os.path.join(os.getcwd(), 'src/commands')
 )
