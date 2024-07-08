@@ -49,7 +49,8 @@ class Commander:
         command = self.commands[command_name]
         
         try: 
-            command.run(*message[1:])
-        except Error as e:
+            command.run(server, client, addr, *message[1:])
+        
+        except Exception as e:
             print(e)
                 
