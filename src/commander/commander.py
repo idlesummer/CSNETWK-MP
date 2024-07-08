@@ -2,7 +2,7 @@ import asyncio
 import importlib
 import os
 from pathlib import Path
-from pyee import AsyncIOEventEmitter
+import threading
 
 
 class Commander:
@@ -10,16 +10,10 @@ class Commander:
     def __init__(self, server, commandsPath):
         self.server = server
         self.commandsPath = commandsPath
-        self.ee = AsyncIOEventEmitter() 
         self.commands = {}
         
-        self.register_events()
         self.build_commands()       
-        asyncio.run(self.handle_commands())
-    
-    def register_events(self):
-        self.ee.on('client-connect', self.client_connect)
-        self.ee.on('client-interact', self.client_interact)
+        self.handle_commands()
     
     def build_commands(self):
         for filename in os.listdir(self.commandsPath):
@@ -33,23 +27,29 @@ class Commander:
                 self.commands[name] = module.data
             
             except ImportError as e:
-                print(f"Error importing module '{module_name}': {e}")
+                print(f"Error importing command module '{module_name}': {e}")
     
-    async def handle_commands(self):
+    def handle_commands(self):
         while True:
             print('Server: Waiting for client connections..')
-            client, addr = await self.server.accept()
-            self.ee.emit('client-connect', self.server, client, addr)
+            client, addr = self.server.accept()
+            thread = threading.Thread(target=self.client_connect, args=(self.server, client, addr))
+            thread.start()
     
-    async def client_connect(self, server, client, addr):
+    def client_connect(self, server, client, addr):
+        print('Server: Accepted client connection.')
         client.send('Connection to the File Exchange Server is successful!'.encode())
+        
         while True:
             message = client.recv(4096).decode().split()
-            self.ee.emit('client-interact', server, client, addr)
-            command_name = message[0][1:]
-            command = self.commands[command_name]
-            command.run(*message[1:])
+            self.client_interact(self.server, client, addr, message)
             
-    async def client_interact(self, server, client, addr):
-        pass
+    def client_interact(self, server, client, addr, message):
+        command_name = message[0][1:]
+        command = self.commands[command_name]
+        
+        try: 
+            command.run(*message[1:])
+        except Error as e:
+            print(e)
                 
