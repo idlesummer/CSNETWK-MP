@@ -1,4 +1,4 @@
-def run(server, client, addr, options):
+def run(interaction, commander):
     pass
 
 data = {

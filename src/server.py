@@ -16,5 +16,7 @@ server.listen()
 # Command handler configurations
 Commander(
     server=server,
-    commandsPath=os.path.join(os.getcwd(), 'src/commands')
+    commandsPath=os.path.join(os.getcwd(), 'src\\commands'),
+    dataPath=os.path.join(os.getcwd(), 'data'),
+    validationsPath=os.path.join(os.getcwd(), 'src\\validations'),
 )

@@ -1,5 +1,8 @@
-def run(server, client, addr, options):
-    pass
+def run(interaction, commander):
+    handle = interaction.options[0]
+    print('Command:', interaction.command_name)
+    print('Handle:', handle)
+    return True
 
 data = {
     'name': 'register',
