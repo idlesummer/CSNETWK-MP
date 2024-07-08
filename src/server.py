@@ -1,4 +1,4 @@
-# Builtin package imports
+# Standard library imports
 import os
 from socket import *
 
@@ -16,7 +16,7 @@ server.listen()
 # Command handler configurations
 Commander(
     server=server,
-    commandsPath=os.path.join(os.getcwd(), 'src\\commands'),
-    dataPath=os.path.join(os.getcwd(), 'data'),
-    validationsPath=os.path.join(os.getcwd(), 'src\\validations'),
+    commands_path=os.path.join(os.getcwd(), 'src/commands'),
+    data_path=os.path.join(os.getcwd(), 'data'),
+    validations_path=os.path.join(os.getcwd(), 'src/validations'),
 )
