@@ -6,6 +6,6 @@ client.connect(('localhost', 12345))
 
 print(client.recv(4096).decode())
 
-client.send('/register User1'.encode())
+client.send('/register Alice'.encode())
 
 print(client.recv(4096).decode())

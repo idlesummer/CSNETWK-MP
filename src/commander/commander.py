@@ -32,7 +32,7 @@ class Commander:
                 command_name = command_module.data['name']
                 self.command_objs[command_name] = { 
                     'data': command_module.data, 
-                    'validation': None 
+                    'validation': None, 
                 }
                 validation_exists = os.path.exists(os.path.join(self.validations_path, filename))
                                 

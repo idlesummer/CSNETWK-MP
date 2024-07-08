@@ -11,6 +11,7 @@ def run(interaction, commander):
     print(storage_path)
     os.mkdir(storage_path)
     
+    print(f"Server: Created new client storage for '{handle}'")
     session.client.send(f'Welcome {handle}!'.encode())
 
 
