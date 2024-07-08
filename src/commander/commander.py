@@ -30,8 +30,10 @@ class Commander:
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
                 command_name = command_module.data['name']
-                self.command_objs[command_name] = { 'data': command_module.data }
-                self.command_objs[command_name]['validation'] = None
+                self.command_objs[command_name] = { 
+                    'data': command_module.data, 
+                    'validation': None 
+                }
                 validation_exists = os.path.exists(os.path.join(self.validations_path, filename))
                                 
                 if validation_exists:
