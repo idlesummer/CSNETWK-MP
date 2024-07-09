@@ -8,4 +8,4 @@ print(client.recv(4096).decode())
 
 client.send('/register Alice'.encode())
 
-print(client.recv(4096).decode())
+# print(client.recv(4096).decode())

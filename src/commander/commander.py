@@ -18,25 +18,24 @@ class Commander:
         self.validations_path = validations_path
         self.command_objs = { }
         
+        if not os.path.exists(data_path):
+            print(f"Server: Created client storage at '{data_path}'")
+            os.mkdir(data_path)
+        
         self.load_commands()       
         self.handle_sessions()
     
     def load_commands(self):
-        for filename in os.listdir(self.commands_path):
-            if not filename.endswith('.py'):
-                continue
+        for file_path in Path(self.commands_path).glob('*.py'):
+            module_name = file_path.stem
             
-            module_name = Path(filename).stem
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
                 command_name = command_module.data['name']
-                self.command_objs[command_name] = { 
-                    'data': command_module.data, 
-                    'validation': None, 
-                }
-                validation_exists = os.path.exists(os.path.join(self.validations_path, filename))
-                                
-                if validation_exists:
+                self.command_objs[command_name] = { 'data': command_module.data, 'validation': None }
+                validation_path = Path(self.validations_path) / file_path.name
+                
+                if validation_path.exists() and validation_path.is_file():
                     validation_module = importlib.import_module(f'{Path(self.validations_path).name}.{module_name}')
                     validation = validation_module.validate
                     self.command_objs[command_name]['validation'] = validation
@@ -54,10 +53,15 @@ class Commander:
     
     def client_connect(self, session):
         print('Server: Accepted client connection.')
-        session.client.send('Connection to the File Exchange Server is successful!'.encode())
+        session.client.send(b'Connection to the File Exchange Server is successful!')
         
         while True:
-            message = session.client.recv(4096).decode()
+            try:
+                message = session.client.recv(4096).decode()
+            except ConnectionResetError:
+                print('Server: Client has disconnected unexpectedly.')
+                break
+                
             if not message:
                 print('Server: Client has been disconnected.')
                 break
@@ -69,13 +73,14 @@ class Commander:
     def client_interact(self, interaction):        
         command_name = interaction.command_name
         command_obj = self.command_objs.get(command_name)
+        command_run = command_obj['data']['run']
         
         try:
             # Interaction validations
             if self.validate_interaction(interaction, command_obj):
                 return
                         
-            command_obj['data']['run'](interaction, self)
+            command_run(interaction, self)
 
         except Exception as e:
             print(e)
@@ -83,12 +88,12 @@ class Commander:
     def validate_interaction(self, interaction, command_obj):
         # Check if command exists
         if command_obj is None:
-            interaction.client.send('Error: Command not found.'.encode())
+            interaction.client.send(b'Error: Command not found.')
             return True
         
         # Check for incorrect argument length        
         if len(interaction.options) != len(command_obj['data']['options']):
-            interaction.client.send('Error: Command parameters do not match or is not allowed.'.encode())
+            interaction.client.send(b'Error: Command parameters do not match or is not allowed.')
             return True
         
         # Command-specific validations
