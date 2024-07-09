@@ -27,7 +27,7 @@ class Commander:
     def load_commands(self):
         for command_path in Path(self.commands_path).glob('*.py'):
             module_name = command_path.stem
-            
+
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
                 command_name = command_module.data['name']
@@ -41,8 +41,8 @@ class Commander:
                     
                 print(f"Server: Loaded command '{command_name}' from '{command_path}'")
                             
-            except ImportError as e:
-                print(f"Server: Failed to load command '{command_name}' from '{command_path}': {e}")
+            except Exception as e:
+                print(f"Server: Failed to load command from '{command_path}': {e}")
         
         print('Server: Loaded commands successfully.\n')
     
