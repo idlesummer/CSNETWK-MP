@@ -18,7 +18,7 @@ class Commander:
         self.validations_path = validations_path
         self.command_objs = { }
         
-        if not os.path.exists(data_path):
+        if not Path(data_path).exists():
             print(f"Server: Created client storage at '{data_path}'")
             os.mkdir(data_path)
         
