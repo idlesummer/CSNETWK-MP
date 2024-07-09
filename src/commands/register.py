@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 
 def run(interaction, commander):
@@ -6,11 +6,10 @@ def run(interaction, commander):
     session = interaction.session
     session.set_handle(handle)
     
-    storage_path = os.path.join(commander.data_path, handle)
-    session.storage_path = storage_path
-    print(storage_path)
-    os.mkdir(storage_path)
-    
+    storage_path = Path(commander.data_path) / handle
+    session.set_storage_path(str(storage_path))
+    storage_path.mkdir(parents=True, exist_ok=True)
+
     print(f"Server: Created new client storage for '{handle}'")
     session.client.send(f'Welcome {handle}!'.encode())
 

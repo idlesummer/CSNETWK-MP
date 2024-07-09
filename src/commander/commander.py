@@ -82,7 +82,7 @@ class Commander:
             # Interaction validations
             if self.validate_interaction(interaction, command_obj):
                 return
-                        
+            
             command_run(interaction, self)
 
         except Exception as e:

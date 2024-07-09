@@ -8,4 +8,7 @@ class Session:
         
     def set_handle(self, handle):
         self.handle = handle
+        
+    def set_storage_path(self, storage_path):
+        self.storage_path = storage_path
 
