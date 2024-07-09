@@ -49,8 +49,6 @@ class Commander:
                             
             except Exception as e:
                 print(f"Server: Failed to load command from '{command_path}': {e}")
-        
-        print('Server: Loaded commands successfully.\n')
     
     def handle_sessions(self):
         while True:
