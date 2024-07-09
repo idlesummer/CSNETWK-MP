@@ -30,7 +30,13 @@ class Commander:
 
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
-                command_name = command_module.data['name']
+                command_data = command_module.data
+                command_name = command_data['name']
+                
+                # Populate optional command object properties
+                if 'options' not in command_data:
+                    command_data['options'] = { } 
+                
                 self.command_objs[command_name] = { 'data': command_module.data, 'validator': None }
                 validation_path = Path(self.validations_path) / command_path.name
                 
@@ -72,17 +78,25 @@ class Commander:
             interaction = Interaction(session, message)
             if interaction.is_command():
                 self.client_interact(interaction)
+            else:
+                session.client.send(b'u dint provide a command!')
 
     def client_interact(self, interaction):        
+        session = interaction.session
         command_name = interaction.command_name
         command_obj = self.command_objs.get(command_name)
+        
+        if command_obj is None:
+            session.client.send(b'Error: Command not found.')
+            return       
+        
         command_run = command_obj['data']['run']
         
         try:
             # Interaction validations
             if self.validate_interaction(interaction, command_obj):
                 return
-            
+
             command_run(interaction, self)
 
         except Exception as e:
@@ -95,10 +109,10 @@ class Commander:
             return True
         
         # Check for incorrect argument length        
-        if len(interaction.options) != len(command_obj['data']['options']):
+        if len(interaction.options) != len(command_obj['data']['options']): # ERROR HERE!!!
             interaction.client.send(b'Error: Command parameters do not match or is not allowed.')
             return True
-        
+
         # Command-specific validations
         if command_obj['validator'] is not None and command_obj['validator'](interaction, command_obj, self):
             return True
