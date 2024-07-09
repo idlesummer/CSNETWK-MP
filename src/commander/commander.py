@@ -1,6 +1,5 @@
 # Standard library imports
 import importlib
-import os
 from pathlib import Path
 import threading
 
@@ -17,31 +16,35 @@ class Commander:
         self.data_path = data_path
         self.validations_path = validations_path
         self.command_objs = { }
+        path_exists = Path(data_path).mkdir(parents=True, exist_ok=True)
         
-        if not Path(data_path).exists():
-            print(f"Server: Created client storage at '{data_path}'")
-            os.mkdir(data_path)
+        print('Server: Starting...')
+        print(f"Server: {'Created' if path_exists else 'Used'} client storage at '{data_path}'")
         
         self.load_commands()       
         self.handle_sessions()
     
     def load_commands(self):
-        for file_path in Path(self.commands_path).glob('*.py'):
-            module_name = file_path.stem
+        for command_path in Path(self.commands_path).glob('*.py'):
+            module_name = command_path.stem
             
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
                 command_name = command_module.data['name']
-                self.command_objs[command_name] = { 'data': command_module.data, 'validation': None }
-                validation_path = Path(self.validations_path) / file_path.name
+                self.command_objs[command_name] = { 'data': command_module.data, 'validator': None }
+                validation_path = Path(self.validations_path) / command_path.name
                 
                 if validation_path.exists() and validation_path.is_file():
                     validation_module = importlib.import_module(f'{Path(self.validations_path).name}.{module_name}')
-                    validation = validation_module.validate
-                    self.command_objs[command_name]['validation'] = validation
+                    validator = validation_module.validator
+                    self.command_objs[command_name]['validator'] = validator
+                    
+                print(f"Server: Loaded command '{command_name}' from '{command_path}'")
                             
             except ImportError as e:
-                print(f"Server: Error importing command module '{module_name}': {e}")
+                print(f"Server: Failed to load command '{command_name}' from '{command_path}': {e}")
+        
+        print('Server: Loaded commands successfully.\n')
     
     def handle_sessions(self):
         while True:
@@ -97,7 +100,7 @@ class Commander:
             return True
         
         # Command-specific validations
-        if command_obj['validation'] is not None and command_obj['validation'](interaction, command_obj, self):
+        if command_obj['validator'] is not None and command_obj['validator'](interaction, command_obj, self):
             return True
         
         # Check for incorrect data type (to be implemented)
