@@ -10,11 +10,10 @@ from .session import Session
 
 class Commander:
     
-    def __init__(self, server, commands_path, data_path, validations_path):
+    def __init__(self, server, commands_path, data_path):
         self.server = server
         self.commands_path = commands_path
         self.data_path = data_path
-        self.validations_path = validations_path
         self.command_objs = { }
         path_exists = Path(data_path).mkdir(parents=True, exist_ok=True)
         
@@ -30,21 +29,15 @@ class Commander:
 
             try:
                 command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
-                command_data = command_module.data
-                command_name = command_data['name']
+                command_obj = command_module.data
+                command_name = command_obj['name']
                 
-                # Populate optional command object properties
-                if 'options' not in command_data:
-                    command_data['options'] = { } 
-                
-                self.command_objs[command_name] = { 'data': command_module.data, 'validator': None }
-                validation_path = Path(self.validations_path) / command_path.name
-                
-                if validation_path.exists() and validation_path.is_file():
-                    validation_module = importlib.import_module(f'{Path(self.validations_path).name}.{module_name}')
-                    validator = validation_module.validator
-                    self.command_objs[command_name]['validator'] = validator
-                    
+                # Populate optional properties with default values
+                command_obj['options'] = command_obj.get('options') or { }
+                command_obj['validator'] = command_obj.get('validator') or None
+
+                # Add command object to collection
+                self.command_objs[command_name] = command_obj                
                 print(f"Server: Loaded command '{command_name}' from '{command_path}'")
                             
             except Exception as e:
@@ -60,7 +53,7 @@ class Commander:
     
     def client_connect(self, session):
         print('Server: Accepted client connection.')
-        session.client.send(b'Connection to the File Exchange Server is successful!')
+        session.client.send(b'DISPLAY Connection to the File Exchange Server is successful!')
         
         while True:
             try:
@@ -70,6 +63,7 @@ class Commander:
                 break
                 
             if not message:
+                session.client.close()
                 print('Server: Client has been disconnected.')
                 break
             
@@ -77,7 +71,7 @@ class Commander:
             if interaction.is_command():
                 self.client_interact(interaction)
             else:
-                session.client.send(b'u dint provide a command!')
+                session.client.send(b'DISPLAY u dint provide a command!')
 
     def client_interact(self, interaction):        
         session = interaction.session
@@ -85,13 +79,13 @@ class Commander:
         command_obj = self.command_objs.get(command_name)
         
         if command_obj is None:
-            session.client.send(b'Error: Command not found.')
+            session.client.send(b'DISPLAY Error: Command not found.')
             return       
         
-        command_run = command_obj['data']['run']
-        
+        command_run = command_obj['run']
+
         try:
-            # Interaction validations
+            # Validate interaction
             if self.validate_interaction(interaction, command_obj):
                 return
 
@@ -103,11 +97,11 @@ class Commander:
     def validate_interaction(self, interaction, command_obj):
         # Check if command exists
         if command_obj is None:
-            interaction.client.send(b'Error: Command not found.')
+            interaction.client.send(b'DISPLAY Error: Command not found.')
             return True
         
         # Check for incorrect argument length        
-        if len(interaction.options) != len(command_obj['data']['options']): # ERROR HERE!!!
+        if command_obj['options'] is not None and len(interaction.options) != len(command_obj['options']):
             interaction.client.send(b'Error: Command parameters do not match or is not allowed.')
             return True
 

@@ -18,5 +18,4 @@ Commander(
     server=server,
     commands_path=os.path.join(os.getcwd(), 'src/commands'),
     data_path=os.path.join(os.getcwd(), 'data'),
-    validations_path=os.path.join(os.getcwd(), 'src/validations'),
 )

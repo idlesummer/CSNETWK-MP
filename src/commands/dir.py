@@ -11,7 +11,7 @@ def run(interaction, commander):
     dir_paths = '\n'.join(dir_paths) if dir_paths else 'Empty'
     
     # Send list of files
-    client.send(f'\nServer Directory\n{dir_paths}\n'.encode())
+    client.send(f'DISPLAY \nServer Directory\n{dir_paths}\n'.encode())
 
 data = {
     'name': 'dir',

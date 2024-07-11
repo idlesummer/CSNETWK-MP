@@ -11,7 +11,19 @@ def run(interaction, commander):
     storage_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Server: Created new client storage for '{handle}'")
-    session.client.send(f'Welcome {handle}!'.encode())
+    session.client.send(f'DISPLAY Welcome {handle}!'.encode())
+
+
+def validator(interaction, command_obj, commander):
+    handle = interaction.options[0]
+    handle_path = (Path(commander.data_path) / handle)
+    
+    if handle_path.exists():
+        message = 'DISPLAY Error: Registration failed. Handle or alias already exists.'
+        interaction.client.send(message.encode())
+        return True
+    
+    return False
 
 
 data = {
@@ -20,4 +32,5 @@ data = {
         'handler': 'string',
     },
     'run': run,
+    'validator': validator,
 }
