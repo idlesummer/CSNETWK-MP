@@ -1,7 +1,7 @@
 class Interaction:
     def __init__(self, session, message):
         self.session = session
-        self.client = session.client
+        self.conn = session.conn
         self.message = message
         self.tokens = message.split()
         self.command_name = None

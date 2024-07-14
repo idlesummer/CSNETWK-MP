@@ -1,0 +1,4 @@
+message = {
+    method: 'POST',
+    body: ''
+};

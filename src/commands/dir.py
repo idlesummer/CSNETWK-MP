@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def run(interaction, commander):
-    client = interaction.client
+    conn = interaction.conn
     session = interaction.session
     storage_path = Path(session.storage_path)
     
@@ -11,7 +11,7 @@ def run(interaction, commander):
     dir_paths = '\n'.join(dir_paths) if dir_paths else 'Empty'
     
     # Send list of files
-    client.send(f'DISPLAY \nServer Directory\n{dir_paths}\n'.encode())
+    conn.send(f'DISPLAY \nServer Directory\n{dir_paths}\n'.encode())
 
 data = {
     'name': 'dir',

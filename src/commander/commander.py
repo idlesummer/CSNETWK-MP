@@ -46,24 +46,31 @@ class Commander:
     def handle_sessions(self):
         while True:
             print('Server: Waiting for client connections..')
-            client, addr = self.server.accept()
-            session = Session(self.server, client, addr)
+            conn, addr = self.server.accept()
+            
+            session = Session(self.server, conn, self.data_path)
             thread = threading.Thread(target=self.client_connect, args=(session,))
             thread.start()
     
     def client_connect(self, session):
+        # Set defaults
+        # session.settimeout(30000)
+        
+        # Proceed to session handling
         print('Server: Accepted client connection.')
-        session.client.send(b'DISPLAY Connection to the File Exchange Server is successful!')
+        session.conn.send(b'DISPLAY Connection to the File Exchange Server is successful!')
         
         while True:
             try:
-                message = session.client.recv(4096).decode()
+                message = session.conn.recv(4096).decode()
+                # message = session.recv()
+                
             except ConnectionResetError:
                 print('Server: Client has disconnected unexpectedly.')
                 break
                 
             if not message:
-                session.client.close()
+                session.conn.close()
                 print('Server: Client has been disconnected.')
                 break
             
@@ -71,7 +78,7 @@ class Commander:
             if interaction.is_command():
                 self.client_interact(interaction)
             else:
-                session.client.send(b'DISPLAY u dint provide a command!')
+                session.conn.send(b'DISPLAY u dint provide a command!')
 
     def client_interact(self, interaction):        
         session = interaction.session
@@ -79,7 +86,7 @@ class Commander:
         command_obj = self.command_objs.get(command_name)
         
         if command_obj is None:
-            session.client.send(b'DISPLAY Error: Command not found.')
+            session.conn.send(b'DISPLAY Error: Command not found.')
             return       
         
         command_run = command_obj['run']
@@ -97,12 +104,12 @@ class Commander:
     def validate_interaction(self, interaction, command_obj):
         # Check if command exists
         if command_obj is None:
-            interaction.client.send(b'DISPLAY Error: Command not found.')
+            interaction.conn.send(b'DISPLAY Error: Command not found.')
             return True
         
         # Check for incorrect argument length        
         if command_obj['options'] is not None and len(interaction.options) != len(command_obj['options']):
-            interaction.client.send(b'Error: Command parameters do not match or is not allowed.')
+            interaction.conn.send(b'Error: Command parameters do not match or is not allowed.')
             return True
 
         # Command-specific validations

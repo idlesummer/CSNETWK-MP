@@ -1,5 +1,5 @@
 # Standard library imports
-import os
+from pathlib import Path
 from socket import *
 
 # Internal package imports
@@ -14,8 +14,11 @@ server.bind((addr, port))
 server.listen()
 
 # Command handler configurations
+commands_path = Path.cwd() / 'src/commands'
+data_path = Path.cwd() / 'public/data'
+
 Commander(
     server=server,
-    commands_path=os.path.join(os.getcwd(), 'src/commands'),
-    data_path=os.path.join(os.getcwd(), 'data'),
+    commands_path=commands_path,
+    data_path=data_path,
 )

@@ -4,14 +4,21 @@ from pathlib import Path
 def run(interaction, commander):
     handle = interaction.options[0]
     session = interaction.session
-    session.set_handle(handle)
-    
-    storage_path = Path(commander.data_path) / handle
-    session.set_storage_path(str(storage_path))
-    storage_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"Server: Created new client storage for '{handle}'")
-    session.client.send(f'DISPLAY Welcome {handle}!'.encode())
+    if session.register(handle):
+        print(f"Server: Created new client storage for '{handle}'")
+        session.conn.send(f'DISPLAY Welcome {handle}!'.encode())
+        
+    else:
+        session.conn.send(f'Error: DISPLAY Welcome {handle}!'.encode())
+        
+
+    # session.set_handle(handle)
+    
+    # storage_path = Path(commander.data_path) / handle
+    # session.set_storage_path(str(storage_path))
+    # storage_path.mkdir(parents=True, exist_ok=True)
+
 
 
 def validator(interaction, command_obj, commander):
@@ -20,7 +27,7 @@ def validator(interaction, command_obj, commander):
     
     if handle_path.exists():
         message = 'DISPLAY Error: Registration failed. Handle or alias already exists.'
-        interaction.client.send(message.encode())
+        interaction.conn.send(message.encode())
         return True
     
     return False
