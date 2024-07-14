@@ -1,7 +1,7 @@
-import socket
+import json
 
 
-class CommunicationManager:
+class Message:
     def __init__(self, sock):
         self.sock = sock
     
@@ -39,3 +39,9 @@ class CommunicationManager:
     
         except Exception as e:
             return None
+        
+    def serialize(self):
+        pass
+    
+    def deserialize(self):
+        pass
