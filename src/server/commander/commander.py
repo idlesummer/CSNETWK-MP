@@ -4,6 +4,7 @@ from pathlib import Path
 import threading
 
 # Internal package imports
+from src.shared import Message
 from .interaction import Interaction
 from .session import Session
 
@@ -37,7 +38,7 @@ class Commander:
 
             # Populate optional properties with default values
             command_obj['options'] = command_obj.get('options', {})
-            command_obj['validator'] = command_obj.get('valdidator', None)
+            command_obj['validator'] = command_obj.get('validator', None)
 
             # Add command object to collection
             self.command_objs[command_name] = command_obj
@@ -46,17 +47,20 @@ class Commander:
     def handle_session(self): 
         while True:
             print('Server: Waiting for client connections...')
-            client, addr = self.server.accept()
+            client, _ = self.server.accept()
             
             session = Session(self.server, client, self.data_path)
-            thread = threading.Thread(target=self.on_conenct, args=(session,))
+            thread = threading.Thread(target=self.on_connect, args=(session,))
             thread.start()
             
     def on_connect(self, session):
+        # Configure session
+        session.settimeout(60_000)
         
-        print('Server: Accepted client connection')
-        session.send('/display Connection to the File Exchange Server is successful!')
-        
+        # Log successful connection
+        print('Server: Accepted client connection.')
+        session.send(type='display', body='Connection to the File Exchange Server is successful!')
+              
         while True:
             try:
                 message = session.receive()
@@ -75,7 +79,7 @@ class Commander:
                 self.on_interact(interaction) 
                 
             else:
-                session.send('/display Message must be a command.')
+                session.send(type='display', body='Message must be a command.')
                 
     def on_interact(self, interaction):
         session = interaction.session
@@ -83,7 +87,7 @@ class Commander:
         command_obj = self.command_objs.get(command_name)
         
         if command_obj is None:
-            session.send('/display Command not found.')
+            session.send(type='display', body='Command not found.')
             return
         
         command_run = command_obj['run']
@@ -99,14 +103,16 @@ class Commander:
             print(e)
         
     def validate_interaction(self, interaction, command_obj):
+        session = interaction.session
+        
          # Check if command exists
         if command_obj is None:
-            interaction.conn.send(b'DISPLAY Error: Command not found.')
+            session.send(type='DISPLAY', body='Error: Command not found.')
             return True
         
         # Check for incorrect argument length        
         if command_obj['options'] is not None and len(interaction.options) != len(command_obj['options']):
-            interaction.conn.send(b'Error: Command parameters do not match or is not allowed.')
+            session.send(b'Error: Command parameters do not match or is not allowed.')
             return True
 
         # Command-specific validations

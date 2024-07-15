@@ -1,1 +1,1 @@
-from .message import Message
+from .communicator import Communicator
