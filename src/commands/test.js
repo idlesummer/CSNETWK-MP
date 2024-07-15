@@ -1,4 +1,0 @@
-message = {
-    method: 'POST',
-    body: ''
-};
