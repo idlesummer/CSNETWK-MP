@@ -3,7 +3,7 @@ from pathlib import Path
 from socket import *
 
 # Internal package imports
-from src.common import ServerCommander
+from lib import ServerCommander
 
 # Server setup
 ip, port = 'localhost', 12345
@@ -14,8 +14,11 @@ server.bind((ip, port))
 server.listen()
 
 # Command handler configurations
-commands_path = Path.cwd() / 'src/server/commands'
+commands_path = Path.cwd() / 'src/commands/server'
 data_path = Path.cwd() / 'public/data'
+
+print('Main', commands_path)
+
 
 ServerCommander(
     server=server,

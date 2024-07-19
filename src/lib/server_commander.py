@@ -1,10 +1,12 @@
 # Standard package imports
 import importlib
+import os
 from pathlib import Path
 import threading
 
 # Internal package imports
-from src.common import Session
+from .import_file import import_file
+from .session import Session
 
 
 class ServerCommander:
@@ -16,19 +18,18 @@ class ServerCommander:
         self.command_objs = { }
         
         print('Server: Starting...')
-        print(f"Server: 'Used' client storage at '{data_path}'")
+        print(f"Server: Used client storage at '{data_path}'")
         
         self.load_commands()
         self.handle_sessions()
         
-    def load_commands(self):
+        
+    def load_commands(self):        
         for command_path in Path(self.commands_path).glob('*.py'):
-            module_name = command_path.stem
+            try: command_module = import_file(command_path.stem, command_path)
             
-            try: command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
-            
-            except ImportError as err:
-                print(f"Server: Failed to load command from '{command_path}': {err}")
+            except (ImportError, OSError) as e:
+                print(f"Server: Failed to load command from '{command_path}': {e}")
                 continue
             
             command_obj = command_module.data
@@ -42,6 +43,7 @@ class ServerCommander:
             self.command_objs[command_name] = command_obj
             print(f"Server: Loaded command '{command_name}' from '{command_path}'")
             
+            
     def handle_sessions(self): 
         while True:
             print('Server: Waiting for client connections...')
@@ -52,6 +54,7 @@ class ServerCommander:
             
             thread = threading.Thread(target=self.on_connect, args=(session,))
             thread.start()
+            
             
     def on_connect(self, session):
         # Configure session
@@ -78,6 +81,7 @@ class ServerCommander:
                 break
 
             self.on_request(session, request) 
+                  
                                 
     def on_request(self, session, request):
         command_name = request.body['cmd']
@@ -114,3 +118,4 @@ class ServerCommander:
         
         # Check for incorrect data action (to be implemented)
         return False
+

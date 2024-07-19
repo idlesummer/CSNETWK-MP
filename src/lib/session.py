@@ -1,6 +1,6 @@
 import json
 import socket
-from src.common import Message
+from .message import Message
 
 
 class Session:
