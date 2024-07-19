@@ -4,12 +4,11 @@ from pathlib import Path
 import threading
 
 # Internal package imports
-from src.shared import Message
-from .interaction import Interaction
-from .session import Session
+from src.common import Session
 
 
-class Commander:
+class ServerCommander:
+    
     def __init__(self, server, commands_path, data_path):
         self.server = server
         self.commands_path = commands_path
@@ -26,10 +25,9 @@ class Commander:
         for command_path in Path(self.commands_path).glob('*.py'):
             module_name = command_path.stem
             
-            try: 
-                command_module = importlib.import_modulo(f'{Path(self.commands_path).name}.{module_name}')       
-                
-            except ImportError as err: # Handle import errors
+            try: command_module = importlib.import_module(f'{Path(self.commands_path).name}.{module_name}')
+            
+            except ImportError as err:
                 print(f"Server: Failed to load command from '{command_path}': {err}")
                 continue
             
@@ -44,80 +42,75 @@ class Commander:
             self.command_objs[command_name] = command_obj
             print(f"Server: Loaded command '{command_name}' from '{command_path}'")
             
-    def handle_session(self): 
+    def handle_sessions(self): 
         while True:
             print('Server: Waiting for client connections...')
             client, _ = self.server.accept()
+            session = Session(client)
+            session.data['server'] = self.server
+            session.data['data_path'] = self.data_path
             
-            session = Session(self.server, client, self.data_path)
             thread = threading.Thread(target=self.on_connect, args=(session,))
             thread.start()
             
     def on_connect(self, session):
         # Configure session
-        session.settimeout(60_000)
+        session.set_timeout(60_000)
         
         # Log successful connection
         print('Server: Accepted client connection.')
-        session.send(type='display', body='Connection to the File Exchange Server is successful!')
+        session.send({ 'msg': 'Connection to the File Exchange Server is successful!' })
               
         while True:
-            try:
-                message = session.receive()
+            # Wait for client request
+            request = session.receive()
             
-            except ConnectionResetError:
-                print('Server: Client has disconnected unexpectedly.')
+            # Handle time-out disconnection
+            if request.timed_out: 
+                session.close()
+                print('Server: Client has timed out.')
                 break
             
-            if not message:
+            # Handle unexpected disconnection
+            if request.disconnected:
                 session.close()
                 print('Server: Client has been disconnected')
-                
-            interaction = Interaction(session, message)
-            
-            if interaction.is_command():
-                self.on_interact(interaction) 
-                
-            else:
-                session.send(type='display', body='Message must be a command.')
-                
-    def on_interact(self, interaction):
-        session = interaction.session
-        command_name = interaction.command_name
+                break
+
+            self.on_request(session, request) 
+                                
+    def on_request(self, session, request):
+        command_name = request.body['cmd']
         command_obj = self.command_objs.get(command_name)
-        
-        if command_obj is None:
-            session.send(type='display', body='Command not found.')
-            return
-        
-        command_run = command_obj['run']
-        
+    
         try:
             # Validate interaction
-            if self.validate_interaction(interaction, command_obj):
+            if self.validate_request(session, command_obj):
                 return
             
-            command_run(interaction, self)
+            command_run = command_obj['run']
+            command_run(session, request, self)
 
         except Exception as e:
             print(e)
         
-    def validate_interaction(self, interaction, command_obj):
-        session = interaction.session
+    def validate_request(self, session, request, command_obj):
         
          # Check if command exists
         if command_obj is None:
-            session.send(type='DISPLAY', body='Error: Command not found.')
+            session.send({'status': 'ERROR', 'msg': 'Error: Command not found.'})
             return True
         
         # Check for incorrect argument length        
-        if command_obj['options'] is not None and len(interaction.options) != len(command_obj['options']):
-            session.send(b'Error: Command parameters do not match or is not allowed.')
+        if command_obj['options'] is not None and len(request.options) != len(command_obj['options']):
+            session.send({'status': 'ERROR', 'msg': 'Error: Command parameters do not match or is not allowed.'})
             return True
 
         # Command-specific validations
-        if command_obj['validator'] is not None and command_obj['validator'](interaction, command_obj, self):
+        if command_obj['validator'] is not None and command_obj['validator'](session, request, command_obj, self):
+            validator_message = command_obj.get('validator_message') or 'COMMAND-ERROR'
+            session.send({'status': 'ERROR', 'msg': validator_message})
             return True
         
-        # Check for incorrect data type (to be implemented)
+        # Check for incorrect data action (to be implemented)
         return False
