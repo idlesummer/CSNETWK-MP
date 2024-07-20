@@ -38,11 +38,11 @@ class Session:
             return int.from_bytes(message_length, byteorder='big')
             
         except TypeError as e:
-            print(f"Server: Error encoding message to JSON, message must be a dictionary: {e}")
+            print(f"Error encoding message to JSON, message must be a dictionary: {e}")
             raise
 
         except socket.error as e:
-            print(f"Server: Connection error while sending: {e}")
+            print(f"Connection error while sending: {e}")
             return False
     
             
@@ -67,14 +67,10 @@ class Session:
             return Message(message)
 
         except json.JSONDecodeError as e:
-            print(f"Server: Error decoding JSON: {e}")
-            print('THIS ONE IS ERROR')
-            return Message(disconnected=True)
+            return Message(error_message=f'Error decoding JSON: {e}', disconnected=True)
         
         except socket.timeout as e:
-            print(f"Server: Socket timeout during receive: {e}")
-            return Message(disconnected=True, timed_out=True)
+            return Message(error_message=f'Socket timeout during receive: {e}', disconnected=True, timed_out=True)
         
         except socket.error as e:
-            print(f"Server: Socket error during receive: {e}")
-            return Message(disconnected=True)
+            return Message(error_message=f'Socket error during receive: {e}', disconnected=True)

@@ -15,8 +15,8 @@ class ServerCommander:
         self.data_path = data_path
         self.command_objs = { }
         
-        print('Server: Starting...')
-        print(f"Server: Used client storage at '{data_path}'")
+        print('Server> Starting...')
+        print(f"Server> Used client storage at '{data_path}'")
         
         self.load_commands()
         self.handle_sessions()
@@ -35,15 +35,15 @@ class ServerCommander:
 
                 # Add command object to collection
                 self.command_objs[command_name] = command_obj
-                print(f"Server: Loaded command '{command_name}' from '{command_path}'")
+                print(f"Server> Loaded command '{command_name}' from '{command_path}'")
             
             except (AttributeError, ImportError, OSError) as e:
-                print(f"Server: Failed to load command from '{command_path}': {e}")
+                print(f"Server> Failed to load command from '{command_path}': {e}")
                 
             
     def handle_sessions(self): 
         while True:
-            print('Server: Waiting for client connections...')
+            print('Server> Waiting for client connections...')
             client, _ = self.server.accept()
             session = Session(client)
             session.data['server'] = self.server
@@ -55,31 +55,32 @@ class ServerCommander:
             
     def on_connect(self, session):
         # Configure session
-        session.set_timeout(60_000)
+        session.set_timeout(120.0)
         
         # Log successful connection
-        print('Server: Accepted client connection.')
+        print('Server> Accepted client connection.')
         session.send({'msg': 'Connection to the File Exchange Server is successful!'})
               
         while True:
             # Wait for client request
             request = session.receive()
-            
-            if request.invalid_request:
-                print('Server: Invalid request. Closed client connection.')
-                session.close()
-                break
-            
+                        
             # Handle time-out disconnection
             if request.timed_out: 
                 session.close()
-                print('Server: Client has timed out.')
+                print(f'Server> Client has timed out. {request.error_message}')
+                break
+            
+            # Handle invalid requests
+            if request.invalid_request:
+                print(f'Server> Invalid request. {request.error_message}')
+                session.close()
                 break
             
             # Handle unexpected disconnection
             if request.disconnected:
                 session.close()
-                print('Server: Client has been disconnected')
+                print(f'Server> Client has been disconnected. {request.error_message}')
                 break
 
             self.on_request(session, request) 
@@ -94,9 +95,9 @@ class ServerCommander:
             if self.validate_request(session, request, command_obj):
                 return
             
-            print(f"Server: Running command '{command_name}'")
+            print(f"Server> Running command '{command_name}'")
             command_run = command_obj['run']
-            command_run(session, request, self)
+            command_run(session, request, command_obj, self)
 
         except Exception as e:
             print(e)

@@ -12,10 +12,31 @@ response = session.connect(('localhost', 12345))
 print(response.data)
 
 while True:
-    session.send({'cmd': 'dir'})
+    
+    # get user input
+    prompt = input('Client> ')
+    
+    # process command
+    if not prompt.startswith('/'):
+        print('Closing session')
+        session.close()
+        break
+        
+    tokens = prompt.split()
+    symbol = tokens[0][0]
+    command = tokens[0][1:]
+    args = tokens[1:]
+    
+    print(tokens)
+    print(symbol)
+    print(command)
+    print(args)
+        
+    # send command to server
+    session.send({'cmd': command, 'args': args})
+    
+    # receive response
     response = session.receive()
     
+    # print response to user
     print(response.data)
-    
-    session.close()
-    break

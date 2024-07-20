@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def run(session, request, commander):
+def run(session, request, command_obj, commander):
     command_objs = commander.command_objs
     command_syntax = []
     

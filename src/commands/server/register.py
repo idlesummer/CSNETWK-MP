@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def run(session, request, commander):       
+def run(session, request, command_obj, commander):       
     handle = request.args[0]    
     session.data['handle'] = handle
     
@@ -13,7 +13,7 @@ def run(session, request, commander):
     session.send({'msg': f'Welcome {handle}!'})
 
 
-def validator(session, request, commander):
+def validator(session, request, command_obj, commander):
     handle = request.args[0]
     storage_path = Path(commander.data_path) / handle
     return storage_path.exists()

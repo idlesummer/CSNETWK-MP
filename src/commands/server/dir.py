@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def run(session, request, commander):
+def run(session, request, command_obj, commander):
     session.data['handle'] = 'Alice'
     storage_path = Path(session.data['data_path']) / session.data['handle']
     
@@ -13,7 +13,13 @@ def run(session, request, commander):
     session.send({'msg': f'\nServer Directory\n{dir_paths}\n'})
 
 
+def validator(session, request, command_obj, commander):
+    return 'handle' not in session.data
+
+
 data = {
     'name': 'dir',
     'run': run,
+    'validator': validator,
+    'validator_message': 'Error: Unregistered user. Please register a handle.',
 }
