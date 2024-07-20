@@ -2,8 +2,8 @@ from pathlib import Path
 
 
 def run(session, request, command_obj, commander):
-    session.data['handle'] = 'Alice'
-    storage_path = Path(session.data['data_path']) / session.data['handle']
+    handle = session.data['handle']
+    storage_path = Path(session.data['data_path']) / handle
     
     # Get list of files in client's storage
     dir_paths = [file_path.name for file_path in storage_path.iterdir()]

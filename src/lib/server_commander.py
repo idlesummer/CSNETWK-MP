@@ -13,7 +13,7 @@ class ServerCommander:
         self.server = server
         self.commands_path = commands_path
         self.data_path = data_path
-        self.command_objs = { }
+        self.command_objs = {}
         
         print('Server> Starting...')
         print(f"Server> Used client storage at '{data_path}'")
@@ -46,8 +46,6 @@ class ServerCommander:
             print('Server> Waiting for client connections...')
             client, _ = self.server.accept()
             session = Session(client)
-            session.data['server'] = self.server
-            session.data['data_path'] = self.data_path
             
             thread = threading.Thread(target=self.on_connect, args=(session,))
             thread.start()
@@ -55,36 +53,43 @@ class ServerCommander:
             
     def on_connect(self, session):
         # Configure session
+        session.data['server'] = self.server
+        session.data['data_path'] = self.data_path
         session.set_timeout(120.0)
         
         # Log successful connection
         print('Server> Accepted client connection.')
         session.send({'msg': 'Connection to the File Exchange Server is successful!'})
-              
+        
         while True:
             # Wait for client request
             request = session.receive()
                         
+            # Handle disconnection
+            if request.disconnected:
+                session.close()
+                print(f'Server> Client has disconnected. {request.error_message}')
+                break
+            
             # Handle time-out disconnection
             if request.timed_out: 
                 session.close()
                 print(f'Server> Client has timed out. {request.error_message}')
                 break
-            
+                        
             # Handle invalid requests
             if request.invalid_request:
-                print(f'Server> Invalid request. {request.error_message}')
                 session.close()
+                print(f'Server> Invalid request. {request.error_message}')
                 break
             
-            # Handle unexpected disconnection
-            if request.disconnected:
+            # Force break from request listener
+            if self.on_request(session, request):
+                handle = session.data.get('handle', '')
+                print(f"Server> Client '{handle}' session ended.")
                 session.close()
-                print(f'Server> Client has been disconnected. {request.error_message}')
                 break
 
-            self.on_request(session, request) 
-                  
                                 
     def on_request(self, session, request):
         command_name = request.data['cmd']
@@ -97,10 +102,11 @@ class ServerCommander:
             
             print(f"Server> Running command '{command_name}'")
             command_run = command_obj['run']
-            command_run(session, request, command_obj, self)
+            return command_run(session, request, command_obj, self)
 
         except Exception as e:
             print(e)
+        
         
     def validate_request(self, session, request, command_obj):
         

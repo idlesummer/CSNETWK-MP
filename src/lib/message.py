@@ -16,6 +16,7 @@ class Message:
         self.data.setdefault('status', '')
         self.data.setdefault('msg', '')
         
+        # This doesnt correctly catch JSONDecodeError for some reason
         try: 
             message = message.replace('\\"', '"')
             self.data = json.loads(message)

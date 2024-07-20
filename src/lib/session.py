@@ -8,13 +8,15 @@ class Session:
     def __init__(self, socket):
         self.socket = socket
         self.data = {}
-        self.requested = False
-        self.responded = False
-
+        
 
     def connect(self, addr):
-        self.socket.connect(addr)
-        return self.receive()
+        try: 
+            self.socket.connect(addr)
+            return self.receive()
+        
+        except:
+            return None
     
     
     def set_timeout(self, timeout):
@@ -40,6 +42,10 @@ class Session:
         except TypeError as e:
             print(f"Error encoding message to JSON, message must be a dictionary: {e}")
             raise
+        
+        except socket.timeout as e:
+            print(f"Socket timeout while sending: {e}")
+            return False
 
         except socket.error as e:
             print(f"Connection error while sending: {e}")
@@ -49,14 +55,18 @@ class Session:
     def receive(self):
         try:
             message_length_byte = self.socket.recv(4)
+            
+            if not message_length_byte:
+                raise ConnectionError("Client disconnected unexpectedly.")
+                     
             message_length = int.from_bytes(message_length_byte, byteorder='big')
             message = b''
 
             while len(message) < message_length:
                 chunk = self.socket.recv(4096)
 
-                if not chunk:
-                    raise ConnectionError("Client disconnected before sending full message.")
+                if not chunk:                  
+                    raise ConnectionError("Client disconnected unexpectedly.")
 
                 message += chunk
 
@@ -67,10 +77,10 @@ class Session:
             return Message(message)
 
         except json.JSONDecodeError as e:
-            return Message(error_message=f'Error decoding JSON: {e}', disconnected=True)
+            return Message(error_message=f'Error decoding JSON: {e}', invalid_request=True)
         
         except socket.timeout as e:
-            return Message(error_message=f'Socket timeout during receive: {e}', disconnected=True, timed_out=True)
+            return Message(error_message=f'Socket timeout during receive: {e}', timed_out=True)
         
         except socket.error as e:
             return Message(error_message=f'Socket error during receive: {e}', disconnected=True)
