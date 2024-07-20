@@ -6,12 +6,23 @@ from .message import Message
 class Session:
     
     def __init__(self, socket):
-        self._socket = socket
-        self._data = {}
+        self.socket = socket
+        self.data = {}
+        self.requested = False
+        self.responded = False
 
+
+    def connect(self, addr):
+        self.socket.connect(addr)
+        return self.receive()
+    
     
     def set_timeout(self, timeout):
         self.socket.settimeout(timeout)
+    
+    
+    def close(self):
+        self.socket.close()
     
     
     def send(self, message):    
@@ -24,16 +35,12 @@ class Session:
             
             # Send the actual message data
             self.socket.sendall(message_bytestr)
-            return message_length
+            return int.from_bytes(message_length, byteorder='big')
             
         except TypeError as e:
-            print(f"Server: Error, message must be a dictionary: {e}")
+            print(f"Server: Error encoding message to JSON, message must be a dictionary: {e}")
             raise
-        
-        except json.JSONEncodeError as e:
-            print(f"Server: Error encoding message to JSON: {e}")
-            raise
-            
+
         except socket.error as e:
             print(f"Server: Connection error while sending: {e}")
             return False
@@ -41,8 +48,8 @@ class Session:
             
     def receive(self):
         try:
-            message_length = self.socket.recv(4).decode('utf-8')
-            message_length = int.from_bytes(message_length, byteorder='big')
+            message_length_byte = self.socket.recv(4)
+            message_length = int.from_bytes(message_length_byte, byteorder='big')
             message = b''
 
             while len(message) < message_length:
@@ -57,11 +64,12 @@ class Session:
             message = message.decode()
 
             # Pass the dictionary to Message object
-            return Message(json.loads(message))
+            return Message(message)
 
         except json.JSONDecodeError as e:
             print(f"Server: Error decoding JSON: {e}")
-            raise
+            print('THIS ONE IS ERROR')
+            return Message(disconnected=True)
         
         except socket.timeout as e:
             print(f"Server: Socket timeout during receive: {e}")
@@ -70,13 +78,3 @@ class Session:
         except socket.error as e:
             print(f"Server: Socket error during receive: {e}")
             return Message(disconnected=True)
-
-        
-    @property
-    def socket(self):
-        return self._socket
-    
-    
-    @property
-    def data(self):
-        return self._data

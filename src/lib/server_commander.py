@@ -1,6 +1,4 @@
 # Standard package imports
-import importlib
-import os
 from pathlib import Path
 import threading
 
@@ -26,23 +24,22 @@ class ServerCommander:
         
     def load_commands(self):        
         for command_path in Path(self.commands_path).glob('*.py'):
-            try: command_module = import_file(command_path.stem, command_path)
+            try:
+                command_module = import_file(command_path.stem, command_path)
+                command_obj = command_module.data
+                command_name = command_obj.get('name', None)                                
+
+                # Populate optional properties with default values
+                command_obj['options'] = command_obj.get('options', {})
+                command_obj['validator'] = command_obj.get('validator', None)
+
+                # Add command object to collection
+                self.command_objs[command_name] = command_obj
+                print(f"Server: Loaded command '{command_name}' from '{command_path}'")
             
-            except (ImportError, OSError) as e:
+            except (AttributeError, ImportError, OSError) as e:
                 print(f"Server: Failed to load command from '{command_path}': {e}")
-                continue
-            
-            command_obj = command_module.data
-            command_name = command_obj.get('name', None)                                
-
-            # Populate optional properties with default values
-            command_obj['options'] = command_obj.get('options', {})
-            command_obj['validator'] = command_obj.get('validator', None)
-
-            # Add command object to collection
-            self.command_objs[command_name] = command_obj
-            print(f"Server: Loaded command '{command_name}' from '{command_path}'")
-            
+                
             
     def handle_sessions(self): 
         while True:
@@ -62,11 +59,16 @@ class ServerCommander:
         
         # Log successful connection
         print('Server: Accepted client connection.')
-        session.send({ 'msg': 'Connection to the File Exchange Server is successful!' })
+        session.send({'msg': 'Connection to the File Exchange Server is successful!'})
               
         while True:
             # Wait for client request
             request = session.receive()
+            
+            if request.invalid_request:
+                print('Server: Invalid request. Closed client connection.')
+                session.close()
+                break
             
             # Handle time-out disconnection
             if request.timed_out: 
@@ -84,14 +86,15 @@ class ServerCommander:
                   
                                 
     def on_request(self, session, request):
-        command_name = request.body['cmd']
+        command_name = request.data['cmd']
         command_obj = self.command_objs.get(command_name)
     
         try:
             # Validate interaction
-            if self.validate_request(session, command_obj):
+            if self.validate_request(session, request, command_obj):
                 return
             
+            print(f"Server: Running command '{command_name}'")
             command_run = command_obj['run']
             command_run(session, request, self)
 
@@ -106,13 +109,13 @@ class ServerCommander:
             return True
         
         # Check for incorrect argument length        
-        if command_obj['options'] is not None and len(request.options) != len(command_obj['options']):
+        if command_obj['options'] is not None and len(request.args) != len(command_obj['options']):
             session.send({'status': 'ERROR', 'msg': 'Error: Command parameters do not match or is not allowed.'})
             return True
 
         # Command-specific validations
         if command_obj['validator'] is not None and command_obj['validator'](session, request, command_obj, self):
-            validator_message = command_obj.get('validator_message') or 'COMMAND-ERROR'
+            validator_message = command_obj.get('validator_message') or 'COMMAND-VALIDATION-ERROR'
             session.send({'status': 'ERROR', 'msg': validator_message})
             return True
         

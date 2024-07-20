@@ -17,9 +17,6 @@ server.listen()
 commands_path = Path.cwd() / 'src/commands/server'
 data_path = Path.cwd() / 'public/data'
 
-print('Main', commands_path)
-
-
 ServerCommander(
     server=server,
     commands_path=commands_path,
