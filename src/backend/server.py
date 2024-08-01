@@ -1,24 +1,24 @@
-# Standard library imports
+# Standard package imports
 from pathlib import Path
 from socket import *
 
 # Internal package imports
-from commander import Commander
+from lib import Server
 
 # Server setup
-addr, port = 'localhost', 12345
+ip, port = '127.0.0.1', 12345
 server = socket(AF_INET, SOCK_STREAM)
-server.bind((addr, port))
+server.bind((ip, port))
 
 # Server startup
 server.listen()
 
 # Command handler configurations
-commands_path = Path.cwd() / 'src/commands'
-data_path = Path.cwd() / 'public/data'
+commands_path = Path.cwd() / 'commands'
+storage_path = Path.cwd().parent.parent / 'public/data'
 
-Commander(
+Server(
     server=server,
     commands_path=commands_path,
-    data_path=data_path,
+    storage_path=storage_path,
 )
